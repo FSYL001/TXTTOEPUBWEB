@@ -24,6 +24,7 @@
 ### 🔤 界面预览
 
 
+<img width="716" height="1226" alt="屏幕截图 2025-11-06 112022" src="https://github.com/user-attachments/assets/0b25a3df-c692-4161-aa05-e2c1c182dd17" />
 
 
 ---
