@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TXT → EPUB 转换器</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial;margin:0}
+    body{background:#f6f8fb;color:#111;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{width:980px;max-width:100%;background:#fff;border-radius:12px;box-shadow:0 6px 30px rgba(20,30,60,0.08);padding:20px}
+    h1{margin:0 0 8px;font-size:20px}
+    p.lead{margin:0 0 18px;color:#556}
+    .row{display:flex;gap:12px}
+    .col{flex:1}
+    label{display:block;font-size:13px;margin-bottom:6px}
+    input[type=text],input[type=file],textarea,select{width:100%;padding:10px;border:1px solid #e3e7ee;border-radius:8px;font-size:14px}
+    textarea{min-height:300px;resize:vertical}
+    .controls{display:flex;gap:8px;align-items:center;margin-top:12px}
+    button{background:#2563eb;color:#fff;border:0;padding:10px 14px;border-radius:10px;cursor:pointer}
+    button.secondary{background:#eef2ff;color:#111}
+    footer{font-size:12px;color:#667;margin-top:12px}
+    .small{font-size:13px;color:#556}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>TXT → EPUB 在线转换器</h1>
+    <p class="lead">把本地 .txt 文件或直接粘贴文本转换成标准 EPUB（适用于 Kindle、iBooks、各类阅读器）。</p>
+
+    <div class="row">
+      <div class="col">
+        <label>书名</label>
+        <input id="title" type="text" placeholder="输入书名（例如：我的小说）" value="Untitled">
+      </div>
+      <div class="col">
+        <label>作者</label>
+        <input id="author" type="text" placeholder="输入作者（例如：张三）" value="Unknown">
+      </div>
+      <div class="col" style="max-width:160px">
+        <label>语言</label>
+        <select id="lang">
+          <option value="zh-CN">简体中文 (zh-CN)</option>
+          <option value="zh-TW">繁體中文 (zh-TW)</option>
+          <option value="en">English (en)</option>
+          <option value="ja">日本語 (ja)</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>从 TXT 文件导入</label>
+      <input id="fileInput" type="file" accept=".txt, text/plain">
+      <div class="small">若上传文件，系统会读取文件并填充到文本框。若想分章请在 TXT 中用一行以 <code>===</code>（三个等号）作为章节分隔符。</div>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>或直接粘贴 / 编辑文本</label>
+      <textarea id="text" placeholder="把 TXT 内容粘贴到这里，或直接编辑..."> </textarea>
+    </div>
+
+    <div class="controls">
+      <button id="convert">生成 EPUB</button>
+      <button id="downloadSample" class="secondary">下载示例 TXT</button>
+      <div style="flex:1"></div>
+      <div class="small">生成的 EPUB 为单文件书（含简单封面、章节、目录）。</div>
+    </div>
+
+    <footer>
+      Tips: 若想多个章节请在 TXT 中使用独立一行的 <code>===</code> 来分隔，各章自动生成标题。此页面使用开源 JSZip 与 FileSaver 生成并下载 EPUB，无需服务器。
+    </footer>
+  </div>
+
+  <!-- 依赖 CDN: JSZip + FileSaver -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+  <script>
+    // 工具函数：escape XML
+    function xmlEscape(s){
+      return s.replace(/[&<>\"]+/g, function(c){
+        switch(c){case '&': return '&amp;'; case '<': return '&lt;'; case '>': return '&gt;'; case '"': return '&quot;';}
+      });
+    }
+
+    // 读取文件输入
+    const fileInput = document.getElementById('fileInput');
+    const textArea = document.getElementById('text');
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files[0];
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        textArea.value = reader.result.replace(/\r\n/g,'\n');
+      };
+      reader.readAsText(f, "utf-8");
+    });
+
+    // 示例下载
+    document.getElementById('downloadSample').addEventListener('click', ()=>{
+      const sample = '第一章 开始\n这是第一章内容。\n\n===\n\n第二章 转折\n这是第二章内容。';
+      const blob = new Blob([sample], {type:'text/plain;charset=utf-8'});
+      saveAs(blob, 'sample.txt');
+    });
+
+    // 主流程：把文本切成章节并生成 EPUB
+    document.getElementById('convert').addEventListener('click', async ()=>{
+      const title = (document.getElementById('title').value || 'Untitled').trim();
+      const author = (document.getElementById('author').value || 'Unknown').trim();
+      const lang = document.getElementById('lang').value || 'zh-CN';
+      const raw = textArea.value.trim();
+      if(!raw){ alert('文本为空，请粘贴或上传 TXT 文件。'); return; }
+
+      // 分章：用单行 === 作为分章器
+      const parts = raw.split(/^===\s*$/m).map(p=>p.trim()).filter(Boolean);
+      // 如果没有章节标题，尝试把第一行作为章节标题
+      const chapters = parts.map((p,i)=>{
+        const lines = p.split(/\n+/).filter(Boolean);
+        let heading = lines[0] || ('Chapter '+(i+1));
+        // 如果第一行看起来像标题（短且没有句号），使用它
+        if(lines.length>1 && heading.length<80 && !/[。.!?]$/.test(heading)){
+          const body = lines.slice(1).join('\n\n');
+          return {title: heading.trim(), body: body.trim()};
+        }
+        // 否则生成默认标题
+        return {title: 'Chapter '+(i+1), body: lines.join('\n\n').trim()};
+      });
+
+      // 创建 EPUB 结构
+      const zip = new JSZip();
+      // 必须的 mimetype 文件（不可压缩，必须为 ZIP 中第一个条目且未压缩）
+      const mimetypeStr = 'application/epub+zip';
+      zip.file('mimetype', mimetypeStr, {compression: "STORE"});
+
+      // META-INF/container.xml
+      zip.file('META-INF/container.xml', `<?xml version="1.0"?>\n<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">\n  <rootfiles>\n    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>\n  </rootfiles>\n</container>`);
+
+      // OEBPS/Styles/style.css
+      const css = `body{font-family:serif;line-height:1.6;padding:1em}h1{font-size:1.2em;margin-top:1.2em}p{margin:0.6em 0;text-indent:2em}`;
+      zip.folder('OEBPS').file('Styles/style.css', css);
+
+      // 每章生成 XHTML
+      const textFolder = zip.folder('OEBPS/Text');
+      const manifestItems = [];
+      const spineItems = [];
+      for(let i=0;i<chapters.length;i++){
+        const ch = chapters[i];
+        const id = `chapter_${i+1}`;
+        // 把段落按双换行分开
+        const paras = ch.body.split(/\n{2,}/).map(s=>xmlEscape(s.trim()));
+        const xhtml = `<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="${lang}">\n  <head>\n    <title>${xmlEscape(ch.title)}</title>\n    <meta charset="utf-8"/>\n    <link rel="stylesheet" type="text/css" href="../Styles/style.css"/>\n  </head>\n  <body>\n    <h1>${xmlEscape(ch.title)}</h1>\n    ${paras.map(p=>`<p>${p.replace(/\n/g,'<br/>')}</p>`).join('\n    ')}\n  </body>\n</html>`;
+        textFolder.file(`${id}.xhtml`, xhtml);
+        manifestItems.push(`<item id="${id}" href="Text/${id}.xhtml" media-type="application/xhtml+xml"/>`);
+        spineItems.push(`<itemref idref="${id}"/>`);
+      }
+
+      // 简单封面（内置 SVG）
+      const coverSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800"><rect width="100%" height="100%" fill="#edeff7"/><text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-size="28" fill="#253a7a">${xmlEscape(title)}</text><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-size="16" fill="#253a7a">${xmlEscape(author)}</text></svg>`;
+      zip.folder('OEBPS').file('Images/cover.svg', coverSvg);
+      manifestItems.push(`<item id="cover" href="Images/cover.svg" media-type="image/svg+xml" properties="cover-image"/>`);
+
+      // toc.ncx (legacy but useful)
+      const ncxNav = chapters.map((ch,i)=>`    <navPoint id="navPoint-${i+1}" playOrder="${i+1}">\n      <navLabel><text>${xmlEscape(ch.title)}</text></navLabel>\n      <content src="Text/chapter_${i+1}.xhtml"/>\n    </navPoint>`).join('\n');
+      const ncx = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE ncx PUBLIC "-//NISO//DTD ncx 2005-1//EN" "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd">\n<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n  <head>\n    <meta name="dtb:uid" content="urn:uuid:${cryptoRandomUUID()}"/>\n  </head>\n  <docTitle><text>${xmlEscape(title)}</text></docTitle>\n  <navMap>\n${ncxNav}\n  </navMap>\n</ncx>`;
+      zip.folder('OEBPS').file('toc.ncx', ncx);
+
+      // content.opf
+      const manifestStr = `<?xml version="1.0" encoding="utf-8"?>\n<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="pub-id" version="2.0">\n  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n    <dc:title>${xmlEscape(title)}</dc:title>\n    <dc:language>${xmlEscape(lang)}</dc:language>\n    <dc:creator>${xmlEscape(author)}</dc:creator>\n    <dc:identifier id="pub-id">urn:uuid:${cryptoRandomUUID()}</dc:identifier>\n  </metadata>\n  <manifest>\n    ${manifestItems.join('\n    ')}\n    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>\n  </manifest>\n  <spine toc="ncx">\n    ${spineItems.join('\n    ')}\n  </spine>\n</package>`;
+      zip.folder('OEBPS').file('content.opf', manifestStr);
+
+      // 生成 zip 并保存为 .epub
+      try{
+        const blob = await zip.generateAsync({type:'blob', mimeType:'application/epub+zip'});
+        saveAs(blob, `${sanitizeFilename(title||'book')}.epub`);
+      }catch(err){
+        console.error(err);
+        alert('生成 EPUB 失败：'+err);
+      }
+    });
+
+    // 辅助：简单文件名清洗
+    function sanitizeFilename(name){
+      return name.replace(/[\\/:*?"<>|]+/g,'_').slice(0,200);
+    }
+
+    // 使用 Web Crypto 生成 UUID（兼容性简易封装）
+    function cryptoRandomUUID(){
+      if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      // 回退实现
+      const s = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^cryptoGetByte()/16).toString(16));
+      return s;
+    }
+    function cryptoGetByte(){
+      if(window.crypto && crypto.getRandomValues){
+        const arr = new Uint8Array(1); crypto.getRandomValues(arr); return arr[0];
+      }
+      return Math.floor(Math.random()*256);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TXT → EPUB 转换器-FSYLの小破站|TXT to EPUB</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #4361ee;
+      --primary-dark: #3a56d4;
+      --secondary: #7209b7;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --light-gray: #e9ecef;
+      --border-radius: 12px;
+      --shadow: 0 10px 30px rgba(0,0,0,0.08);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: var(--dark);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .app-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 30px;
+      background: white;
+      padding: 15px 25px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+    }
+
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      overflow: hidden;
+      cursor: pointer;
+      border: 3px solid var(--primary);
+      transition: var(--transition);
+    }
+
+    .avatar:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: 70px;
+      left: 20px;
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 10px 0;
+      min-width: 180px;
+      z-index: 100;
+      display: none;
+    }
+
+    .dropdown-menu.active {
+      display: block;
+    }
+
+    .dropdown-menu a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      color: var(--dark);
+      text-decoration: none;
+      transition: var(--transition);
+    }
+
+    .dropdown-menu a:hover {
+      background: var(--light-gray);
+    }
+
+    .dropdown-menu a i {
+      width: 20px;
+      text-align: center;
+      color: var(--primary);
+    }
+
+    .app-title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .main-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+    }
+
+    @media (max-width: 900px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 25px;
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--light-gray);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title i {
+      color: var(--primary);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    input[type="text"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid var(--light-gray);
+      border-radius: 8px;
+      font-size: 16px;
+      transition: var(--transition);
+    }
+
+    input[type="text"]:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+    }
+
+    textarea {
+      height: 220px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      overflow: auto;
+      resize: vertical;
+    }
+
+    .row {
+      display: flex;
+      gap: 15px;
+    }
+
+    .col {
+      flex: 1;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .option {
+      background: var(--light-gray);
+      padding: 12px 15px;
+      border-radius: 8px;
+      flex: 1;
+      min-width: 200px;
+      transition: var(--transition);
+    }
+
+    .option:hover {
+      background: #e2e6ea;
+    }
+
+    .option label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 0;
+      cursor: pointer;
+    }
+
+    .option input[type="number"] {
+      width: 80px;
+      padding: 6px 10px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+    }
+
+    .cover-preview {
+      max-width: 100%;
+      border: 2px solid var(--light-gray);
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 25px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 7px 15px rgba(67, 97, 238, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--light-gray);
+      color: var(--dark);
+    }
+
+    .btn-secondary:hover {
+      background: #dee2e6;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .footer {
+      margin-top: 40px;
+      text-align: center;
+      padding: 20px;
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+    }
+
+    .copyright {
+      font-size: 14px;
+      color: var(--gray);
+      margin-bottom: 15px;
+    }
+
+    .copyright a {
+      color: var(--primary);
+      text-decoration: none;
+      transition: var(--transition);
+    }
+
+    .copyright a:hover {
+      color: var(--secondary);
+      text-decoration: underline;
+    }
+
+    .footer-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .muted {
+      color: var(--gray);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .preview-wrap {
+      margin-top: 15px;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+    }
+
+    .file-input-wrapper input[type=file] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .file-input-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--light-gray);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition);
+      border: 2px dashed #adb5bd;
+    }
+
+    .file-input-button:hover {
+      background: #e2e6ea;
+      border-color: var(--primary);
+    }
+
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: var(--primary);
+      color: white;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 头部区域 -->
+    <div class="header">
+      <div class="logo-section">
+        <div class="avatar" id="avatar">
+          <img src="/imger/avatar.jpg" alt="头像" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiByeD0iMjUiIGZpbGw9IiM0MzYxRUUiLz4KPHN2ZyB4PSIxMi41IiB5PSIxMi41IiB3aWR0aD0iMjUiIGhlaWdodD0iMjUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDMTMuMSAyIDE0IDIuOSAxNCA0QzE0IDUuMSAxMy4xIDYgMTIgNkMxMC45IDYgMTAgNS4xIDEwIDRDMTAgMi45IDEwLjkgMiAxMiAyWk0yMSA5VjIwQzIxIDIxLjEgMjAuMSAyMiAxOSAyMkg1QzMuOSAyMiAzIDIxLjEgMyAyMFY5QzMgNy45IDMuOSA3IDUgN0gxMEMxMCA1LjkgMTAuOSA1IDEyIDVIMTlDMjAuMSA1IDIxIDUuOSAyMSA3VjlIMTlWOEgxMlYxMEg1VjIwSDE5VjE1SDIxVjlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+'">
+        </div>
+        <h1 class="app-title">TXT → EPUB 转换器-FSYLの小破站</h1>
+      </div>
+    </div>
+
+    <!-- 下拉菜单 -->
+    <div class="dropdown-menu" id="dropdownMenu">
+      <a href="https://www.douyin.com/user/MS4wLjABAAAAzWfG071S0Ol0_wF3xT1i0oL5eSpPdiYZZY_gKib9S_M" target="_blank"><i class="fab fa-tiktok"></i> 抖音首页</a>
+      <a href="https://space.bilibili.com/450000657" target="_blank"><i class="fab fa-bilibili"></i> B站首页</a>
+      <a href="https://blog.fsyl001.sbs" target="_blank"><i class="fas fa-home"></i> 首页</a>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="main-container">
+      <!-- 左侧卡片 -->
+      <div class="card">
+        <h2 class="card-title"><i class="fas fa-file-upload"></i> 文件设置</h2>
+        
+        <div class="form-group">
+          <label>选择 TXT 文件</label>
+          <div class="file-input-wrapper">
+            <div class="file-input-button">
+              <i class="fas fa-file-alt"></i> 选择 TXT 文件
+            </div>
+            <input id="fileTxt" type="file" accept=".txt,text/plain" />
+          </div>
+          <div class="muted" style="margin-top: 8px;">可多选，但我们只读取第一个文件</div>
+        </div>
+
+        <div class="form-group">
+          <label>文件编码</label>
+          <select id="encoding">
+            <option value="utf-8">UTF-8</option>
+            <option value="gbk">GBK</option>
+            <option value="windows-1252">Windows-1252 (常称 ANSI)</option>
+            <option value="iso-8859-1">ISO-8859-1</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <div class="form-group">
+              <label>书名</label>
+              <input id="title" type="text" placeholder="示例：无职转生" />
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-group">
+              <label>作者</label>
+              <input id="author" type="text" placeholder="示例：风神翼龙" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧卡片 -->
+      <div class="card">
+        <h2 class="card-title"><i class="fas fa-cog"></i> 转换设置</h2>
+        
+        <div class="form-group">
+          <label>选择章节分割策略</label>
+          <div class="options">
+            <div class="option">
+              <label><input type="radio" name="split" value="blank" checked /> 按空行分割（默认）</label>
+            </div>
+            <div class="option">
+              <label><input type="radio" name="split" value="heading" /> 按行首标题</label>
+            </div>
+            <div class="option">
+              <label>
+                <input type="radio" name="split" value="lines" /> 每 N 行分为一章：
+                <input id="linesCount" type="number" value="200" min="1" />
+              </label>
+            </div>
+            <div class="option">
+              <label>
+                <input type="radio" name="split" value="chars" /> 每 N 字分章：
+                <input id="charsCount" type="number" value="2000" min="100" />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>封面设置</label>
+          <div class="file-input-wrapper">
+            <div class="file-input-button">
+              <i class="fas fa-image"></i> 选择封面图片
+            </div>
+            <input id="coverFile" type="file" accept="image/*" />
+          </div>
+          
+          <div class="checkbox-wrapper">
+            <input id="useTextCover" type="checkbox" />
+            <label for="useTextCover">使用 书名 + 作者 生成文字封面（若选择图片，会优先采用图片）</label>
+          </div>
+          
+          <div class="preview-wrap">
+            <img id="coverPreview" class="cover-preview" alt="封面预览" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>更多设置</label>
+          <div class="options">
+            <div class="option">
+              <label><input id="includeToc" type="checkbox" checked /> 包含目录（toc）</label>
+            </div>
+            <div class="option">
+              <label><input id="utf8meta" type="checkbox" checked /> 使用 UTF-8 元数据（推荐）</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 预览和转换区域 -->
+    <div class="card" style="grid-column: 1 / -1; margin-top: 20px;">
+      <h2 class="card-title"><i class="fas fa-eye"></i> 文本预览 <span class="badge">可编辑</span></h2>
+      <textarea id="preview" placeholder="文本预览区域..."></textarea>
+      
+      <div style="display: flex; justify-content: center; margin-top: 25px;">
+        <button id="btnConvert" class="btn btn-primary">
+          <i class="fas fa-file-export"></i> 生成 EPUB 并下载
+        </button>
+      </div>
+      
+      <div class="muted" style="text-align: center; margin-top: 15px;">
+        说明：生成和转换在浏览器端本地完成，不会上传至服务器。若 TXT 出现乱码，请尝试切换编码为 GBK 或 Windows-1252。
+      </div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="footer">
+      <div class="copyright">
+        © 2025 版权归属 <a href="https://blog.fsyl001.sbs" target="_blank">FSYLの小破站 | FSYL的小破站</a>
+      </div>
+      <div class="footer-buttons">
+        <a href="https://blog.fsyl001.sbs" class="btn btn-secondary" target="_blank">
+          <i class="fas fa-home"></i> 返回首页
+        </a>
+        <a href="https://toolbox.fsyl001.sbs" class="btn btn-secondary" target="_blank">
+          <i class="fas fa-toolbox"></i> 返回工具箱
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 依赖库（通过 CDN 加载） -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/encoding-japanese@1.0.30/encoding.min.js"></script>
+
+  <script>
+    // 原有功能代码保持不变
+    // 辅助：清理文件名中的非法字符
+    function sanitizeFileName(name){
+      return (name||'book').replace(/[\\/:*?"<>|\u0000-\u001F]/g, '_').trim();
+    }
+
+    // 读取文件并按选择编码转换为字符串
+    async function readTxtFile(file, encoding){
+      const ab = await file.arrayBuffer();
+      // 使用 encoding-japanese 做编码转换以兼容 GBK/ANSI
+      if(encoding === 'utf-8'){
+        return new TextDecoder('utf-8').decode(ab);
+      }
+      try{
+        // encoding.js expects a Uint8Array
+        const u8 = new Uint8Array(ab);
+        const arr = Encoding.convert(u8, {from: encoding, to:'UNICODE', type:'array'});
+        return Encoding.codeToString(arr);
+      }catch(e){
+        // 兜底：用 TextDecoder 尝试
+        try{ return new TextDecoder(encoding).decode(ab); }catch(e2){ return new TextDecoder('utf-8').decode(ab); }
+      }
+    }
+
+    // 章节切分函数
+    function splitIntoChapters(text, strategy){
+      const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+      const chapters = [];
+      if(strategy === 'blank'){
+        let cur = [];
+        for(const ln of lines){
+          if(ln.trim() === ''){
+            if(cur.length){ chapters.push(cur.join('\n').trim()); cur = []; }
+          }else cur.push(ln);
+        }
+        if(cur.length) chapters.push(cur.join('\n').trim());
+      }else if(strategy === 'heading'){
+        let cur = [];
+        for(const ln of lines){
+          if(/^\s*(第[^\s]{1,8}|#|Chapter\b|CHAPTER\b|\d+\.)/.test(ln)){
+            if(cur.length) { chapters.push(cur.join('\n').trim()); cur = []; }
+          }
+          cur.push(ln);
+        }
+        if(cur.length) chapters.push(cur.join('\n').trim());
+      }else if(strategy === 'lines'){
+        const n = parseInt(document.getElementById('linesCount').value) || 200;
+        for(let i=0;i<lines.length;i+=n){ chapters.push(lines.slice(i,i+n).join('\n').trim()); }
+      }else if(strategy === 'chars'){
+        const n = parseInt(document.getElementById('charsCount').value) || 2000;
+        let i=0;
+        let s = text;
+        while(i<s.length){ chapters.push(s.slice(i,i+n)); i+=n; }
+      }
+      // 过滤空章节
+      return chapters.filter(c=>c && c.length>0);
+    }
+
+    // 生成 XHTML 内容（简单模板）
+    function makeXHTML(title, bodyHtml){
+      return `<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml">\n<head><meta charset="utf-8"/><title>${escapeXml(title)}</title></head>\n<body>\n${bodyHtml}\n</body>\n</html>`;
+    }
+
+    function escapeXml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // 生成 EPUB
+    async function generateEpub({title, author, chapters, coverBlob, useTextCover, includeToc, utf8meta}){
+      const zip = new JSZip();
+      // 1) mimetype（必须且无压缩）
+      zip.file('mimetype','application/epub+zip',{compression:'STORE'});
+      // 2) META-INF/container.xml
+      zip.folder('META-INF').file('container.xml', `<?xml version="1.0"?>\n<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">\n  <rootfiles>\n    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>\n  </rootfiles>\n</container>`);
+
+      // 3) OEBPS
+      const oebps = zip.folder('OEBPS');
+      // images
+      if(coverBlob){
+        const imgData = await blobToUint8Array(coverBlob);
+        oebps.folder('images').file('cover.jpg', imgData);
+      }
+
+      // chapters
+      const itemrefs = [];
+      const manifestItems = [];
+      for(let i=0;i<chapters.length;i++){
+        const id = `chap${i+1}`;
+        const filename = `chapter_${i+1}.xhtml`;
+        const body = '<h1>'+escapeXml((chapters[i].split('\n',1)[0]||('第'+(i+1)+'章')).trim())+'</h1>\n' + '<div>' + escapeXml(chapters[i]).replace(/\n/g,'<br/>') + '</div>';
+        oebps.file(filename, makeXHTML((title||'')+' - '+id, body));
+        manifestItems.push(`<item id="${id}" href="${filename}" media-type="application/xhtml+xml"/>`);
+        itemrefs.push(`<itemref idref="${id}"/>`);
+      }
+
+      // cover page if using text cover
+      if(!coverBlob && useTextCover){
+        const coverHtml = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;font-family:serif;"><h1>${escapeXml(title||'')}</h1><h2>${escapeXml(author||'')}</h2></div>`;
+        oebps.file('cover.xhtml', makeXHTML('Cover', coverHtml));
+        manifestItems.push(`<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml" properties="cover-image"/>`);
+        itemrefs.unshift(`<itemref idref="cover"/>`);
+      }else if(coverBlob){
+        // include a small cover.xhtml that references the image
+        const coverHtml = `<div><img src="images/cover.jpg" alt="cover" style="max-width:100%;height:auto;display:block;margin:0 auto;"/></div>`;
+        oebps.file('cover.xhtml', makeXHTML('Cover', coverHtml));
+        manifestItems.push(`<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml" properties="cover-image"/>`);
+        manifestItems.push(`<item id="cover-image" href="images/cover.jpg" media-type="image/jpeg"/>`);
+        itemrefs.unshift(`<itemref idref="cover"/>`);
+      }
+
+      // toc.ncx (可选)
+      if(includeToc){
+        let navPoints = '';
+        for(let i=0;i<chapters.length;i++){
+          navPoints += `<navPoint id="navPoint-${i+1}" playOrder="${i+1}">\n  <navLabel><text>第${i+1}章</text></navLabel>\n  <content src="chapter_${i+1}.xhtml"/>\n</navPoint>\n`;
+        }
+        const ncx = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE ncx PUBLIC "-//NISO//DTD ncx 2005-1//EN" "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd">\n<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n  <head>\n    <meta name="dtb:uid" content="urn:uuid:${generateUUID()}"/>\n  </head>\n  <docTitle><text>${escapeXml(title||'')}</text></docTitle>\n  <navMap>\n${navPoints}\n  </navMap>\n</ncx>`;
+        oebps.file('toc.ncx', ncx);
+        manifestItems.push('<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>');
+      }
+
+      // content.opf
+      const uuid = generateUUID();
+      const now = new Date().toISOString();
+      const metadata = `<?xml version="1.0" encoding="${utf8meta? 'UTF-8' : 'utf-8'}"?>\n<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="uid" version="2.0">\n  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n    <dc:title>${escapeXml(title||'')}</dc:title>\n    <dc:creator>${escapeXml(author||'')}</dc:creator>\n    <dc:identifier id="uid">urn:uuid:${uuid}</dc:identifier>\n    <dc:language>zh-CN</dc:language>\n    <dc:date>${now}</dc:date>\n  </metadata>\n  <manifest>\n    ${manifestItems.join('\n    ')}\n  </manifest>\n  <spine toc="ncx">\n    ${itemrefs.join('\n    ')}\n  </spine>\n</package>`;
+      oebps.file('content.opf', metadata);
+
+      // 生成 zip blob
+      const blob = await zip.generateAsync({type:'blob',mimeType:'application/epub+zip'});
+      return blob;
+    }
+
+    function generateUUID(){
+      // 简单 UUID
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);return v.toString(16);});
+    }
+
+    function blobToUint8Array(blob){
+      return new Promise((res,rej)=>{const reader=new FileReader();reader.onload=()=>res(new Uint8Array(reader.result));reader.onerror=rej;reader.readAsArrayBuffer(blob);});
+    }
+
+    // 事件绑定
+    document.getElementById('fileTxt').addEventListener('change', async (e)=>{
+      const f = e.target.files && e.target.files[0];
+      if(!f) return;
+      const enc = document.getElementById('encoding').value;
+      try{
+        const text = await readTxtFile(f, enc);
+        document.getElementById('preview').value = text;
+      }catch(err){
+        alert('读取文件失败：'+err);
+      }
+    });
+
+    document.getElementById('coverFile').addEventListener('change', (e)=>{
+      const f = e.target.files && e.target.files[0];
+      const img = document.getElementById('coverPreview');
+      if(!f){ img.src = ''; return; }
+      const url = URL.createObjectURL(f);
+      img.src = url;
+      img.onload = ()=>URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('btnConvert').addEventListener('click', async ()=>{
+      const title = document.getElementById('title').value || 'book';
+      const author = document.getElementById('author').value || 'author';
+      const previewText = document.getElementById('preview').value;
+      if(!previewText || previewText.trim().length===0){ alert('请先加载或粘贴 TXT 文本到预览框'); return; }
+      // determine split strategy
+      const strategy = document.querySelector('input[name="split"]:checked').value;
+      const chapters = splitIntoChapters(previewText, strategy);
+      if(chapters.length===0){ alert('没有分出任何章节，请检查分割策略或文本内容'); return; }
+
+      // cover
+      const coverFile = document.getElementById('coverFile').files[0];
+      const useTextCover = document.getElementById('useTextCover').checked;
+      let coverBlob = null;
+      if(coverFile){
+        // convert to jpeg if possible by drawing to canvas (to normalize format)
+        coverBlob = coverFile;
+      }
+
+      // include toc
+      const includeToc = document.getElementById('includeToc').checked;
+      const utf8meta = document.getElementById('utf8meta').checked;
+
+      document.getElementById('btnConvert').disabled = true;
+      document.getElementById('btnConvert').innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+      try{
+        const epubBlob = await generateEpub({title, author, chapters, coverBlob, useTextCover, includeToc, utf8meta});
+        const filename = sanitizeFileName(title) + '-' + sanitizeFileName(author) + '.epub';
+        saveAs(epubBlob, filename);
+      }catch(err){
+        alert('生成 EPUB 失败：'+err);
+        console.error(err);
+      }finally{
+        document.getElementById('btnConvert').disabled = false;
+        document.getElementById('btnConvert').innerHTML = '<i class="fas fa-file-export"></i> 生成 EPUB 并下载';
+      }
+    });
+
+    // 若用户切换编码后希望重新读文件
+    document.getElementById('encoding').addEventListener('change', async ()=>{
+      const f = document.getElementById('fileTxt').files[0];
+      if(!f) return;
+      const enc = document.getElementById('encoding').value;
+      try{ const text = await readTxtFile(f, enc); document.getElementById('preview').value = text; }catch(e){}
+    });
+
+    // 头像点击事件
+    document.getElementById('avatar').addEventListener('click', function() {
+      const menu = document.getElementById('dropdownMenu');
+      menu.classList.toggle('active');
+    });
+
+    // 点击页面其他地方关闭菜单
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.avatar') && !e.target.closest('.dropdown-menu')) {
+        document.getElementById('dropdownMenu').classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html>
